@@ -73,7 +73,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testSelectStatement_InnerJoin_Replace()
     {
-        $this->markTestSkipped("Supposed defect of not implemented");
+        $this->markTestSkipped("Replace inner joint does not work properly");
         $query = new Query("SELECT id, description FROM `test` INNER JOIN `abc`");
         $query->innerJoin("xyz", null, Query::REPLACE);
         $this->assertEquals("SELECT id, description FROM `test` INNER JOIN `xyz`", (string)$query);
@@ -594,20 +594,19 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("INSERT INTO `test` VALUES (NULL, 'abc', 10), (DEFAULT, \"xyz\", 12)", (string)$query);
     }
 
-    public function testInsertStatement_AddValues_ArrayOfArrays()
-    {
-        $this->markTestSkipped("Defect");
-        $query = new Query("INSERT INTO `test` VALUES (NULL, 'abc', 10)");
-        $query->values(array(array(null, 'xyz', 12)),array("test","Test"), Query::REPLACE);
-        echo $query;
-        $this->assertEquals("INSERT INTO `test` VALUES (NULL, 'abc', 10), (\"xyz\")", (string)$query);
-    }
-
     public function testInsertStatement_AddValues_Array()
     {
         $query = new Query("INSERT INTO `test` VALUES (NULL, 'abc', 10)");
         $query->values(array(null, 'xyz', 12));
         $this->assertEquals("INSERT INTO `test` VALUES (NULL, 'abc', 10), (DEFAULT, \"xyz\", 12)", (string)$query);
+    }
+
+    public function testInsertStatement_AddValues_MultipleRows()
+    {
+        $this->markTestSkipped("Values method returns duplicate values when using it for multiple rows (array of arrays)");
+        $query = new Query("INSERT INTO `test`");
+        $query->values(array(array(null, 'xyz', 12),array('array1','array2', 3)));
+        $this->assertEquals('INSERT INTO `test` VALUES (DEFAULT, "xyz", 12), ("array1", "array2", 3), ((DEFAULT, "xyz", 12)', (string)$query);
     }
 
 
@@ -639,6 +638,21 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("INSERT INTO table (a,b,c) VALUES (1,2,3) ON DUPLICATE KEY UPDATE `a` = 15, `c` = 14", (string)$query);
     }
 
+    //testing methods Query::getParts and Query::OnDuplicateKeyUpdate true
+    public function testGetParts_OnDuplicateKeyUpdate()
+    {
+        $query = new Query("INSERT INTO table (a,b,c) VALUES (1,2,3)");
+        $this->assertEquals(array('insert' =>null, 'into' => 'table ', 'columns' => 'a,b,c', 'set'=> null,  'values' => '(1,2,3)', 'query' => null, 'on duplicate key update' => "a = VALUES(a), b = VALUES(b), c = VALUES(c)"), $query->onDuplicateKeyUpdate()->getParts());
+    }
+
+    //testing methods Query::getParts and Query::OnDuplicateKeyUpdate with expression
+    public function testGetParts_OnDuplicateKeyUpdate_With_Expression()
+    {
+        $this->markTestSkipped("Defect-> Map identifiers not defined");
+        $query = new Query("INSERT INTO table (a,b,c) VALUES (1,2,3)");
+        $this->assertEquals(array('insert' =>null, 'into' => 'table ', 'columns' => 'a,b,c', 'set'=> null,  'values' => '(1,2,3)', 'query' => null, 'on duplicate key update' => "a = VALUES(a), b = VALUES(b), c = VALUES(c)"), $query->onDuplicateKeyUpdate(false,"c = VALUES(c)")->getParts());
+    }
+
     //-------- UPDATE
 
     public function testUpdateStatement_AddSet()
@@ -667,6 +681,14 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $query = new Query("UPDATE `test` SET description='abc', type_id=10 WHERE xyz=10");
         $query->set("abc=12", null, Query::REPLACE);
         $this->assertEquals("UPDATE `test` SET `abc`=12 WHERE xyz=10", (string)$query);
+    }
+
+    public function testUpdateStatement_AddSet_setExpression()
+    {
+        $this->markTestSkipped("set() with array column and SET_EXPRESSION flag contains method QuerrySplitter::mapIdentifiers which is undefined");
+        $query = new Query("UPDATE `test` SET description='abc', type_id=10 WHERE xyz=10");
+        $query->set(array("abc=12", "asd=15"), null, Query::SET_EXPRESSION);
+        $this->assertEquals("UPDATE `test` SET description='abc', type_id=10, `abc`=12 WHERE xyz=10", (string)$query);
     }
 
     public function testUpdateStatement_ReplaceTable()
@@ -881,7 +903,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testTruncateTable()
     {
-        $this->markTestSkipped("Defect");
+        $this->markTestSkipped("Defect -> truncate does not work");
         $query = new Query("TRUNCATE TABLE `dates`");
         $query->table("aaa");
         $this->assertEquals("TRUNCATE TABLE `aaa`", (string)$query);
@@ -931,21 +953,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         } catch (\Exception $e){
             $this->assertEquals("Unable to get subquery #1: Query only has 0 subqueries.",$e->getMessage());
     }
-    }
-
-    //testing methods Query::getParts and Query::OnDuplicateKeyUpdate true
-    public function testGetParts_OnDuplicateKeyUpdate()
-    {
-        $query = new Query("INSERT INTO table (a,b,c) VALUES (1,2,3)");
-        $this->assertEquals(array('insert' =>null, 'into' => 'table ', 'columns' => 'a,b,c', 'set'=> null,  'values' => '(1,2,3)', 'query' => null, 'on duplicate key update' => "a = VALUES(a), b = VALUES(b), c = VALUES(c)"), $query->onDuplicateKeyUpdate()->getParts());
-    }
-
-    //testing methods Query::getParts and Query::OnDuplicateKeyUpdate with expression
-    public function testGetParts_OnDuplicateKeyUpdate_With_Expression()
-    {
-        $this->markTestSkipped("Defect-> Map identifiers not defined");
-        $query = new Query("INSERT INTO table (a,b,c) VALUES (1,2,3)");
-        $this->assertEquals(array('insert' =>null, 'into' => 'table ', 'columns' => 'a,b,c', 'set'=> null,  'values' => '(1,2,3)', 'query' => null, 'on duplicate key update' => "a = VALUES(a), b = VALUES(b), c = VALUES(c)"), $query->onDuplicateKeyUpdate(false,"c = VALUES(c)")->getParts());
     }
 
     //testing Query::getTables() with insert
@@ -1020,12 +1027,57 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         }
     }
 
+    //testing Query:getValues()
     public function testGetValues()
     {
         $this->markTestSkipped("QuerrySplitter::splitValues() not yet implemented");
         $query = new Query("INSERT INTO `test` VALUES (NULL, 'abc', 10)");
         print_r($query->getValues());
     }
+
+    //testing Query::bind() with unnamed placeholders SELECT with only one param
+    public function testBind_UnnamedPlaceholders_SELECT_int()
+    {
+        $this->markTestSkipped("Defect in bind method");
+        $query = new Query('SELECT * FROM mytable WHERE name=? AND id = ?');
+
+        $expected = 'SELECT * FROM mytable WHERE name="aaaa"';
+        $actual = $query->bind("aaaa", "bbbb", "cccc");
+        echo($actual);
+        $this->assertEquals($expected, $actual);
+    }
+
+    //testing Query::bind() with named placeholders SELECT
+    public function testBind_NamedPlaceholders_SELECT_array()
+    {
+        $query = new Query('SELECT * FROM mytable WHERE name=:name AND age=:age AND status="A"');
+
+        $expected = 'SELECT * FROM mytable WHERE name="Name to put" AND age=12 AND status="A"';
+        $actual = $query->bind(array('name'=>'Name to put', 'age' => 12));
+        $this->assertEquals($expected, $actual);
+    }
+
+    //testing Query::bind() with named placeholders UPDATE
+    public function testBind_NamedPlaceholders_UPDATE_array()
+    {
+        $query = new Query('UPDATE `test` SET description="abc", type_id=:type_id WHERE xyz=:xyz');
+
+        $expected = 'UPDATE `test` SET description="abc", type_id="type" WHERE xyz=12';
+        $actual = $query->bind(array('type_id'=>'type', 'xyz' => 12));
+        $this->assertEquals($expected, $actual);
+    }
+
+    //testing Query::bind() with named placeholders DELETE
+    public function testBind_NamedPlaceholders_DELETE_array()
+    {
+        $query = new Query('DELETE FROM `test` WHERE (id >:id) AND (`status` =:status)');
+
+        $expected = 'DELETE FROM `test` WHERE (id >12) AND (`status` ="status_given")';
+        $actual = $query->bind(array('id'=>12, 'status' => 'status_given'));
+        $this->assertEquals($expected, $actual);
+    }
+
+
 
     public function testNamed()
     {
