@@ -1021,7 +1021,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         {
             $query = new Query("UPDATE `test` SET description='abc', type_id=10 WHERE id > 10");
             $query->getColumns();
-            $this->assertFail("Columns extracted from UPDATE query when not possible to do it.");
+            $this->fail("Columns extracted from UPDATE query when not possible to do it.");
         } catch (\Exception $e){
             $this->assertEquals("It's not possible to extract columns of a UPDATE query.", $e->getMessage());
         }
@@ -1145,11 +1145,32 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $query->__callStatic("SELECT", array("obj",2,3)));
     }
 
+    //testing Query::__callStatic() with arrays
     public function test__callStatic_array()
     {
         $query = new Query("SELECT id, description FROM `test`");
         $expected = "SELECT obj1, 2, 3";
         $this->assertEquals($expected, $query->__callStatic("SELECT", array(array("obj1", 2, 3), array(null, "obj2"))));
+    }
+
+    //testing Query::__callStatic() with backquote options
+    public function test__callStatic_backquoteOptions()
+    {
+        $query = new Query("SELECT id, description FROM `test`");
+        $expected = "SELECT `obj`, `2`, `3`";
+        $this->assertEquals($expected, $query->__callStatic("SELECT", array(array("obj",2,3), Query::_BACKQUOTE_OPTIONS)));
+    }
+
+    //testing Query::__callStatic() exception caught
+    public function test__callStatic_Exception()
+    {
+        try{
+            $query = new Query("SELECT id, description FROM `test`");
+            $query->__callStatic("NonExistent", array("obj",2,3));
+            $this->fail("Exception not caught");
+        } catch (\Exception $e){
+            $this->assertEquals("Unknown query type 'NonExistent'.", $e->getMessage());
+        }
     }
 
     public function testNamed()
