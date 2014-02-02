@@ -123,7 +123,7 @@ class Query
     
     /**
      * Class constructor.
-     * 
+     *
      * @param string $statement  Query statement
      */
     public function __construct($statement)
@@ -308,9 +308,9 @@ class Query
             $params = func_get_args();
             $params = array_splice($params, 1);
         }
-        
+
         $this->params += $params;
-        
+
         return $this;
     }
     
@@ -357,7 +357,9 @@ class Query
         }
 
         if (!($flags & self::_BACKQUOTE_OPTIONS)) $flags |= self::BACKQUOTE_WORDS;
-        if (!($flags & self::_PLACEMENT_OPTIONS)) $flags |= $joinType ? self::APPEND : self::REPLACE;
+        if (!($flags & self::_PLACEMENT_OPTIONS)) {
+            $flags |= $joinType ? self::APPEND : self::REPLACE;
+        }
         if (!isset($joinType) && ~$flags & self::REPLACE) $joinType = ',';
 
         $table = QuerySplitter::backquote($table, $flags);
@@ -373,7 +375,7 @@ class Query
         }
 
         return $this;
-    }
+    } //100%
 
     /**
      * Set the FROM table of a SELECT query.
@@ -401,7 +403,7 @@ class Query
 
     /**
      * Set the INTO table of an INSERT query.
-     * 
+     *
      * @param string $table    tablename
      * @param int    $flags    Query::REPLACE, Query::PREPEND or Query::APPEND + Query::BACKQUOTE_% options as bitset.
      * @return Query  $this
@@ -653,7 +655,7 @@ class Query
         return $this;
     }
 
-    /**
+    /**b
      * Add ON DUPLICATE KEY UPDATE to an INSERT query.
      * 
      * @param mixed $column      Column name, array(column, ...) or array('column' => expression, ...)
@@ -678,9 +680,9 @@ class Query
             $column = QuerySplitter::backquote($column, $flags & ~self::_BACKQUOTE_OPTIONS | self::BACKQUOTE_STRICT);
 
             if (!isset($expression)) $column .= " = VALUES($column)";
-            elseif ($flags & self::SET_VALUE) $column .= ' = ' . QuerySplitter::quote($value, 'DEFAULT');
-            else $column .= ' = ' . QuerySplitter::mapIdentifiers($value, $flags);
-        }
+    elseif ($flags & self::SET_VALUE) $column .= ' = ' . QuerySplitter::quote($value, 'DEFAULT');
+    else $column .= ' = ' . QuerySplitter::mapIdentifiers($value, $flags);
+    }
 
         $this->setPart('on duplicate key update', $column, $flags);
 

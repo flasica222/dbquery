@@ -887,6 +887,146 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("TRUNCATE TABLE `aaa`", (string)$query);
     }
 
+    //testing method Query::getBaseStatement
+    public function testGetBaseStatement()
+    {
+        $query = new Query("DELETE FROM `test`");
+        $statement = $query->getBaseStatement();
+        $this->assertEquals($query, $statement);
+    }
+
+    //testing method Query::getSubquery
+    public function testGetSubquery()
+    {
+        $query = new Query("SELECT aaa, bbb FROM ccc WHERE ddd IN (SELECT ddd FROM aaa WHERE bbb = 'xyz');");
+        $subquery = $query->getSubquery(1);
+        $this ->assertEquals("SELECT ddd FROM aaa WHERE bbb = 'xyz'", $subquery);
+    }
+
+    //testing method Query::getSubquery with simple subqueries
+    public function testGetSubquery_Simple()
+    {
+        $query = new Query("INSERT INTO foo SELECT * FROM bar");
+        $subquery = $query->getSubquery(1);
+        $this ->assertEquals("SELECT * FROM bar", $subquery);
+    }
+
+    //testing method Query::getSubquery more subqueries
+    public function testGetSubquery_With_More_Subqueries()
+    {
+        $query = new Query("SELECT * FROM foo INNER JOIN (SELECT type, COUNT(*) FROM bar GROUP BY type) AS bars WHERE id IN (SELECT id FROM zoo)");
+        $subquery = $query->getSubquery(1);
+        $this ->assertEquals("SELECT type, COUNT(*) FROM bar GROUP BY type", $subquery);
+
+        $subquery = $query->getSubquery(2);
+        $this ->assertEquals("SELECT id FROM zoo", $subquery);
+    }
+
+    //testing method Query::getSubquery exception
+    public function testGetSubquery_Exception()
+    {
+        try{
+            $query = new Query("DELETE FROM `test`");
+            $query->getSubquery(1);
+        } catch (\Exception $e){
+            $this->assertEquals("Unable to get subquery #1: Query only has 0 subqueries.",$e->getMessage());
+    }
+    }
+
+    //testing methods Query::getParts and Query::OnDuplicateKeyUpdate true
+    public function testGetParts_OnDuplicateKeyUpdate()
+    {
+        $query = new Query("INSERT INTO table (a,b,c) VALUES (1,2,3)");
+        $this->assertEquals(array('insert' =>null, 'into' => 'table ', 'columns' => 'a,b,c', 'set'=> null,  'values' => '(1,2,3)', 'query' => null, 'on duplicate key update' => "a = VALUES(a), b = VALUES(b), c = VALUES(c)"), $query->onDuplicateKeyUpdate()->getParts());
+    }
+
+    //testing methods Query::getParts and Query::OnDuplicateKeyUpdate with expression
+    public function testGetParts_OnDuplicateKeyUpdate_With_Expression()
+    {
+        $this->markTestSkipped("Defect-> Map identifiers not defined");
+        $query = new Query("INSERT INTO table (a,b,c) VALUES (1,2,3)");
+        $this->assertEquals(array('insert' =>null, 'into' => 'table ', 'columns' => 'a,b,c', 'set'=> null,  'values' => '(1,2,3)', 'query' => null, 'on duplicate key update' => "a = VALUES(a), b = VALUES(b), c = VALUES(c)"), $query->onDuplicateKeyUpdate(false,"c = VALUES(c)")->getParts());
+    }
+
+    //testing Query::getTables() with insert
+    public function testGetTables()
+    {
+        $this->markTestSkipped("Get tables does not work");
+        $query = new Query("INSERT INTO table (a,b,c) VALUES (1,2,3)");
+        print_r($query->getTables());
+    }
+
+    //testing Query::getTables() with select
+    public function testGetTables_With_Select()
+    {
+        $this->markTestSkipped("Get tables does not work");
+        $query = new Query('SELECT id, description FROM `test`,`abc`');
+        print_r($query->getTables());
+    }
+
+    //testing Query::getTables() with Delete
+    public function testGetTables_With_Delete()
+    {
+        $this->markTestSkipped("Get tables does not work");
+        $query = new Query('DELETE FROM `test`');
+        $query->getTables();
+    }
+
+    //testing Query::getColumns() Simple Select
+    public function testGetColumns_Select_Simple()
+    {
+        $query = new Query("SELECT id, description FROM `test` WHERE `status` = 1");
+        $expected = array("0"=> "id", "1"=> "description");
+        $this->assertEquals($expected, $query->getColumns());
+    }
+
+    //testing Query::getColumns Complex Select
+    public function testGetColumns_Complex_Select()
+    {
+        $this->markTestSkipped("Get columns does not work for complex select");
+
+        $query = new Query("SELECT aaa, bbb FROM ccc WHERE ddd IN (SELECT ddd FROM aaa WHERE bbb = 'xyz')");
+        print_r($query->getColumns());
+    }
+
+    //testing Query::getColumns Insert
+    public function testGetColumns_Insert()
+    {
+        $this->markTestSkipped("Get columns does not work for insert");
+
+        $query = new Query('INSERT INTO `test` SET description=`abc`, type_id=10');
+        print_r($query->getColumns());
+    }
+
+    //testing Query::getColumns Delete
+    public function testGetColumns_Delete()
+    {
+        $this->markTestSkipped("Get columns does not work for delete");
+
+        $query = new Query('DELETE FROM `test` WHERE `status` = 1');
+        print_r($query->getColumns());
+    }
+
+    //testing Query::getColumns Update
+    public function testGetColumns_Update()
+    {
+        try
+        {
+            $query = new Query("UPDATE `test` SET description='abc', type_id=10 WHERE id > 10");
+            $query->getColumns();
+            $this->assertFail("Columns extracted from UPDATE query when not possible to do it.");
+        } catch (\Exception $e){
+            $this->assertEquals("It's not possible to extract columns of a UPDATE query.", $e->getMessage());
+        }
+    }
+
+    public function testGetValues()
+    {
+        $this->markTestSkipped("QuerrySplitter::splitValues() not yet implemented");
+        $query = new Query("INSERT INTO `test` VALUES (NULL, 'abc', 10)");
+        print_r($query->getValues());
+    }
+
     public function testNamed()
     {
         Query::loadNamedWith(function($name) {
