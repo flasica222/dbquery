@@ -606,7 +606,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->markTestSkipped("Values method returns duplicate values when using it for multiple rows (array of arrays)");
         $query = new Query("INSERT INTO `test`");
         $query->values(array(array(null, 'xyz', 12),array('array1','array2', 3)));
-        $this->assertEquals('INSERT INTO `test` VALUES (DEFAULT, "xyz", 12), ("array1", "array2", 3), ((DEFAULT, "xyz", 12)', (string)$query);
+        $this->assertEquals('INSERT INTO `test` VALUES (DEFAULT, "xyz", 12), ("array1", "array2", 3), (DEFAULT, "xyz", 12)', (string)$query);
     }
 
 
@@ -1077,7 +1077,80 @@ class QueryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $actual);
     }
 
+    //testing Query::options()
+    public function testOptions()
+    {
+        $this->markTestIncomplete("Testing options incomplete test");
+        $query = new Query('SELECT id, name FROM customer SQL_NO_CACHE');
+        echo $query->options("SQL_CACHE", Query::REPLACE);
+    }
 
+    //testing Query::testCount()
+    public function testCount()
+    {
+        $query = new Query("SELECT id, description FROM `test`");
+        $expected = "SELECT COUNT(*) FROM `test`";
+        $this->assertEquals($expected, $query->count());
+    }
+
+    //testing Query::testCount() with ALL_ROWS flag and UPDATE query
+    public function testCount_AllRows_Update()
+    {
+        $query = new Query("UPDATE `test` SET description='abc', type_id=10 WHERE id > 10");
+        $expected = "SELECT COUNT(*) FROM `test` WHERE id > 10";
+        $this->assertEquals($expected, $query->count(Query::ALL_ROWS));
+    }
+
+    //testing Query::testCount() with ALL_ROWS flag and subqueries
+    public function testCount_AllRows()
+    {
+        $query = new Query("SELECT aaa, bbb FROM ccc WHERE ddd IN (SELECT ddd FROM aaa WHERE bbb = 'xyz')");
+        $expected = "SELECT COUNT(*) FROM ccc WHERE ddd IN (SELECT ddd FROM aaa WHERE bbb = 'xyz')";
+        $this->assertEquals($expected, $query->count(Query::ALL_ROWS));
+    }
+
+    //testing Query::quote()
+    public function testQuote()
+    {
+        $expected = '"value to quote"';
+        $this->assertEquals($expected, Query::quote("value to quote"));
+    }
+
+    //testing Query::quote() with null value argument
+    public function testQuote_nullValue()
+    {
+        $expected = 'value to quote';
+        $this->assertEquals($expected, Query::quote(null, "value to quote"));
+    }
+
+    //testing Query::backQuote()
+    public function testBackquote()
+    {
+        $expected = '`value to quote`';
+        $this->assertEquals($expected, Query::backquote("value to quote"));
+    }
+
+    //testing Query:backQuote() using '.' in value
+    public function testBackquote_usingDot()
+    {
+        $expected = '`value t`.`o quo,te`';
+        $this->assertEquals($expected, Query::backquote("value t.o quo,te"));
+    }
+
+    //testing Query::__callStatic()
+    public function test__callStatic()
+    {
+        $query = new Query("SELECT id, description FROM `test`");
+        $expected = "SELECT obj";
+        $this->assertEquals($expected, $query->__callStatic("SELECT", array("obj",2,3)));
+    }
+
+    public function test__callStatic_array()
+    {
+        $query = new Query("SELECT id, description FROM `test`");
+        $expected = "SELECT obj1, 2, 3";
+        $this->assertEquals($expected, $query->__callStatic("SELECT", array(array("obj1", 2, 3), array(null, "obj2"))));
+    }
 
     public function testNamed()
     {
