@@ -1067,11 +1067,23 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     }
 
     //testing Query::options()
-    public function testOptions()
+    public function testOptions_SQL_NO_CACHE()
     {
-        $this->markTestIncomplete("Testing options incomplete test");
-        $query = new Query('SELECT id, name FROM customer SQL_NO_CACHE');
-        echo $query->options("SQL_CACHE", Query::REPLACE);
+        $query = new Query('SELECT id, name FROM customer');
+        $this->assertEquals('SELECT SQL_NO_CACHE id, name FROM customer' ,$query->options("SQL_NO_CACHE"));
+    }
+
+    public function testOptions_SQL_CACHE()
+    {
+        $query = new Query('SELECT id, name FROM customer');
+        $this->assertEquals('SELECT SQL_CACHE id, name FROM customer' ,$query->options("SQL_NO_CACHE"));
+    }
+
+    //testing Query::options() and replace
+    public function testOptions_Replace()
+    {
+        $query = new Query('SELECT SQL_CACHE id, name FROM customer');
+        $this->assertEquals('SELECT SQL_NO_CACHE id, name FROM customer' ,$query->options("SQL_NO_CACHE", Query::REPLACE));
     }
 
     //testing Query::testCount()
