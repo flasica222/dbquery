@@ -73,7 +73,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testSelectStatement_InnerJoin_Replace()
     {
-        $this->markTestSkipped("Replace inner joint does not work properly");
         $query = new Query("SELECT id, description FROM `test` INNER JOIN `abc`");
         $query->innerJoin("xyz", null, Query::REPLACE);
         $this->assertEquals("SELECT id, description FROM `test` INNER JOIN `xyz`", (string)$query);
@@ -603,7 +602,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testInsertStatement_AddValues_MultipleRows()
     {
-        $this->markTestSkipped("Values method returns duplicate values when using it for multiple rows (array of arrays)");
         $query = new Query("INSERT INTO `test`");
         $query->values(array(array(null, 'xyz', 12),array('array1','array2', 3)));
         $this->assertEquals('INSERT INTO `test` VALUES (DEFAULT, "xyz", 12), ("array1", "array2", 3), (DEFAULT, "xyz", 12)', (string)$query);
@@ -685,7 +683,8 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testUpdateStatement_AddSet_setExpression()
     {
-        $this->markTestSkipped("set() with array column and SET_EXPRESSION flag contains method QuerrySplitter::mapIdentifiers which is undefined");
+        $this->markTestSkipped("Defect-> Map identifiers not defined");
+
         $query = new Query("UPDATE `test` SET description='abc', type_id=10 WHERE xyz=10");
         $query->set(array("abc=12", "asd=15"), null, Query::SET_EXPRESSION);
         $this->assertEquals("UPDATE `test` SET description='abc', type_id=10, `abc`=12 WHERE xyz=10", (string)$query);
@@ -903,7 +902,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
     public function testTruncateTable()
     {
-        $this->markTestSkipped("Defect -> truncate does not work");
         $query = new Query("TRUNCATE TABLE `dates`");
         $query->table("aaa");
         $this->assertEquals("TRUNCATE TABLE `aaa`", (string)$query);
@@ -958,7 +956,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     //testing Query::getTables() with insert
     public function testGetTables()
     {
-        $this->markTestSkipped("Get tables does not work");
         $query = new Query("INSERT INTO table (a,b,c) VALUES (1,2,3)");
         print_r($query->getTables());
     }
@@ -966,7 +963,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     //testing Query::getTables() with select
     public function testGetTables_With_Select()
     {
-        $this->markTestSkipped("Get tables does not work");
         $query = new Query('SELECT id, description FROM `test`,`abc`');
         print_r($query->getTables());
     }
@@ -974,7 +970,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     //testing Query::getTables() with Delete
     public function testGetTables_With_Delete()
     {
-        $this->markTestSkipped("Get tables does not work");
         $query = new Query('DELETE FROM `test`');
         $query->getTables();
     }
@@ -990,8 +985,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     //testing Query::getColumns Complex Select
     public function testGetColumns_Complex_Select()
     {
-        $this->markTestSkipped("Get columns does not work for complex select");
-
         $query = new Query("SELECT aaa, bbb FROM ccc WHERE ddd IN (SELECT ddd FROM aaa WHERE bbb = 'xyz')");
         print_r($query->getColumns());
     }
@@ -999,8 +992,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     //testing Query::getColumns Insert
     public function testGetColumns_Insert()
     {
-        $this->markTestSkipped("Get columns does not work for insert");
-
         $query = new Query('INSERT INTO `test` SET description=`abc`, type_id=10');
         print_r($query->getColumns());
     }
@@ -1008,8 +999,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     //testing Query::getColumns Delete
     public function testGetColumns_Delete()
     {
-        $this->markTestSkipped("Get columns does not work for delete");
-
         $query = new Query('DELETE FROM `test` WHERE `status` = 1');
         print_r($query->getColumns());
     }
@@ -1030,7 +1019,8 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     //testing Query:getValues()
     public function testGetValues()
     {
-        $this->markTestSkipped("QuerrySplitter::splitValues() not yet implemented");
+        $this->markTestSkipped("Call to undefined method Jasny\DB\MySQL\QuerySplitter::splitValues()");
+
         $query = new Query("INSERT INTO `test` VALUES (NULL, 'abc', 10)");
         print_r($query->getValues());
     }
@@ -1038,7 +1028,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     //testing Query::bind() with unnamed placeholders SELECT with only one param
     public function testBind_UnnamedPlaceholders_SELECT_int()
     {
-        $this->markTestSkipped("Defect in bind method");
         $query = new Query('SELECT * FROM mytable WHERE name=? AND id = ?');
 
         $expected = 'SELECT * FROM mytable WHERE name="aaaa"';

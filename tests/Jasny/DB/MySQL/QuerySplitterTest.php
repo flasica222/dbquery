@@ -73,6 +73,12 @@ class QuerySplitterTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('(1, TRUE, "abc", DEFAULT)', QuerySplitter::quote(array(1, true, "abc", null), 'DEFAULT'));
     }
 
+    public function testQuote_dateTime()
+    {
+        $date = new \DateTime("2014-02-05 21:39:21");
+        $this->assertEquals('"'.'2014-02-05 21:39:21'.'"',QuerySplitter::quote($date));
+    }
+
     public function testbackquote_Simple()
     {
         $this->assertEquals('`test`', QuerySplitter::backquote("test"));
@@ -534,6 +540,16 @@ class QuerySplitterTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array('select' => '', 'columns' => 'id, description', 'from' => '`test`', 'where' => '', 'group by' => '', 'having' => '', 'order by' => '', 'limit' => '', 'options' => ''), array_map('trim', $parts));
     }
 
+    public function testSplit_Select_Exception()
+    {
+        try{
+            QuerySplitter::split("SELECT 	 'SELECT");
+            $this->fail("Exception not thrown");
+        } catch(\Exception $e){
+                $this->assertEquals('Unable to split SELECT query, invalid syntax:\nSELECT 	 '."'SELECT",$e->getMessage());
+        }
+    }
+
     public function testJoinSelect_Simple()
     {
         $sql = QuerySplitter::join(array('select' => '', 'columns' => 'id, description', 'from' => '`test`', 'where' => '', 'group by' => '', 'having' => '', 'order by' => '', 'limit' => '', 'options' => ''));
@@ -570,6 +586,16 @@ class QuerySplitterTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array('replace' => '', 'into' => '`test`', 'columns' => '', 'set' => '', 'values' => "(NULL, 'abc')", 'query' => '', 'on duplicate key update' => ''), array_map('trim', $parts));
     }
 
+    public function testSplit_Replace_Exception()
+    {
+        try{
+            QuerySplitter::split("REPLACE 	 'INSERT");
+            $this->fail("Exception not thrown");
+        } catch(\Exception $e){
+            $this->assertEquals("Unable to split INSERT/REPLACE query, invalid syntax:\nREPLACE 	 'INSERT",$e->getMessage());
+        }
+    }
+
     public function testSplit_InsertValuesColumns()
     {
         $parts = QuerySplitter::split("INSERT INTO `test` (`id`, description, `values`) VALUES (NULL, 'abc', 10)");
@@ -598,6 +624,16 @@ class QuerySplitterTest extends \PHPUnit_Framework_TestCase
     {
         $parts = QuerySplitter::split("INSERT INTO `test` SELECT NULL, name FROM xyz WHERE type IN (SELECT type FROM tt GROUP BY type HAVING SUM(qn) > 10)");
         $this->assertEquals(array('insert' => '', 'into' => '`test`', 'columns' => '', 'set' => '', 'values' => '', 'query' => "SELECT NULL, name FROM xyz WHERE type IN (SELECT type FROM tt GROUP BY type HAVING SUM(qn) > 10)", 'on duplicate key update' => ''), array_map('trim', $parts));
+    }
+
+    public function testSplit_Insert_Exception()
+    {
+        try{
+            QuerySplitter::split("INSERT 	 'INSERT");
+            $this->fail("Exception not thrown");
+        } catch(\Exception $e){
+            $this->assertEquals("Unable to split INSERT/REPLACE query, invalid syntax:\nINSERT 	 'INSERT",$e->getMessage());
+        }
     }
 
     public function testJoinInsertValuesSimple()
@@ -666,6 +702,16 @@ class QuerySplitterTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("UPDATE `test` LEFT JOIN atst ON `test`.id = atst.idTest SET fld1=DEFAULT, afld = CONCAT(a, f, ' (SELECT TRANSPORT)'), status='ACTIVE' WHERE id = 10 LIMIT 20 OFFSET 10", $sql);
     }
 
+    public function testSplit_Update_Exception()
+    {
+        try{
+            QuerySplitter::split("UPDATE 	 'UPDATE");
+            $this->fail("Exception not thrown");
+        } catch(\Exception $e){
+            $this->assertEquals("Unable to split UPDATE query, invalid syntax:\nUPDATE 	 'UPDATE",$e->getMessage());
+        }
+    }
+
     public function testSplit_DeleteSimple()
     {
         $parts = QuerySplitter::split("DELETE FROM `test` WHERE id=10");
@@ -682,6 +728,16 @@ class QuerySplitterTest extends \PHPUnit_Framework_TestCase
     {
         $parts = QuerySplitter::split("DELETE `test`.* FROM `test` INNER JOIN (SELECT * FROM dude_import GROUP BY x_id WHERE status = 'OK' HAVING COUNT(*) > 1) AS dude_import ON `test`.ref = dude_import.ref WHERE status = 10");
         $this->assertEquals(array('delete' => '', 'columns' => '`test`.*', 'from' => "`test` INNER JOIN (SELECT * FROM dude_import GROUP BY x_id WHERE status = 'OK' HAVING COUNT(*) > 1) AS dude_import ON `test`.ref = dude_import.ref", 'where' => "status = 10", 'order by' => '', 'limit' => ''), array_map('trim', $parts));
+    }
+
+    public function testSplit_Delete_Exception()
+    {
+        try{
+            QuerySplitter::split("DELETE 	 'DELETE");
+            $this->fail("Exception not thrown");
+        } catch(\Exception $e){
+            $this->assertEquals("Unable to split DELETE query, invalid syntax:\nDELETE 	 'DELETE",$e->getMessage());
+        }
     }
 
     public function testJoin_DeleteSimple()
@@ -702,6 +758,16 @@ class QuerySplitterTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array('truncate' => '', 'table' => '`test`'), array_map('trim', $parts));
     }
 
+    public function testSplit_Truncate_Exception()
+    {
+        try{
+            QuerySplitter::split("TRUNCATE 	 'TRUNCATE");
+            $this->fail("Exception not thrown");
+        } catch(\Exception $e){
+            $this->assertEquals("Unable to split TRUNCATE query, invalid syntax: TRUNCATE 	 'TRUNCATE",$e->getMessage());
+        }
+    }
+
     public function testJoin_Truncate()
     {
         $sql = QuerySplitter::join(array('truncate' => '', 'table' => '`test`'));
@@ -712,6 +778,16 @@ class QuerySplitterTest extends \PHPUnit_Framework_TestCase
     {
         $parts = QuerySplitter::split("SET abc=10, @def='test'");
         $this->assertEquals(array('set' => "abc=10, @def='test'"), array_map('trim', $parts));
+    }
+
+    public function testSplit_Set_Exception()
+    {
+        try{
+            QuerySplitter::split("SET 	 'SET");
+            $this->fail("Exception not thrown");
+        } catch(\Exception $e){
+            $this->assertEquals("Unable to split SET query, invalid syntax: SET 	 'SET",$e->getMessage());
+        }
     }
 
     public function testJoin_Set()
@@ -868,6 +944,16 @@ class QuerySplitterTest extends \PHPUnit_Framework_TestCase
     {
         $tables = QuerySplitter::splitTables("DELETE test.* FROM `test` INNER JOIN `xyz` ON test.id=xyz.test_id");
         $this->assertEquals(array("test" => "`test`", "xyz" => "`xyz`"), $tables);
+    }
+
+    public function testSplitTables_Exception()
+    {
+        try{
+        $tables = QuerySplitter::splitTables("SET this on this");
+        $this->fail("Exception not thrown");
+        }catch (\Exception $e) {
+            $this->assertEquals("It's not possible to extract tables of a SET query.", $e->getMessage());
+        }
     }
 
     //--------
